@@ -1,0 +1,133 @@
+# drhl prompt theme -*- sh -*-
+
+prompt_drhl_help () {
+  cat <<'EOF'
+(Vaguely) Redhat Like Prompt. Uses unicode symbols for vcs and the line
+padding. Add the option `ascii' to get more basic characters.
+
+A lot of code copied from the adam2 prompt.
+EOF
+}
+
+
+prompt_drhl_setup () {
+
+    if [[ $1 == 'ascii' ]]; then
+        pr_drhl_sep='-'
+        pr_drhl_bul='*'
+    else
+        pr_drhl_sep='―'
+        pr_drhl_bul='●'
+    fi
+    setopt noxtrace localoptions extendedglob
+
+    prompt_line_1a='%F{cyan}[%F{blue}%n%f%F{cyan}@%f%F{blue}%m%f%F{cyan}:%B%F{blue}%~%b%f%F{cyan}]%F{cyan}(%F{red}%j%F{cyan})%f'
+    prompt_line_1a2='%F{cyan}[%F{blue}%n%f%F{cyan}@%f%F{blue}%m%f%F{cyan}:%B%F{blue}%~%b%f%F{cyan}]%f%F{cyan}(%F{red}%j%F{cyan})%f'
+    prompt_line_1a3='%F{cyan}[%B%F{blue}%~%b%f%F{cyan}]%f%F{cyan}(%F{red}%j%F{cyan})%f'
+    prompt_line_1vcs='${vcs_info_msg_0_}'
+    prompt_line_1b='%k%F{cyan}[%F{blue}%*%F{cyan}]%f'
+    prompt_line_2='%(?..%F{yellow}[%F{red}%?%F{yellow}] %f)%F{red}%#%b%f%k%E'
+
+    zstyle ':vcs_info:*' actionformats "%F{cyan}(%F{magenta}%s%F{cyan})%F{cyan}[%F{blue}%b%F{cyan}|%F{red}%a%F{cyan}]%f"
+    zstyle ':vcs_info:*' formats       "%F{cyan}(%F{cyan}%s%F{cyan})%F{cyan}[%F{blue}%b%F{cyan}]%f%}"
+    zstyle ':vcs_info:*' stagedstr "%F{green} ${pr_drhl_bul}"
+    zstyle ':vcs_info:*' unstagedstr "%F{yellow} ${pr_drhl_bul}"
+    zstyle ':vcs_info:*' check-for-changes true
+    zstyle ':vcs_info:(sv[nk]|bzr):*' branchformat "%b%F{cyan}:%F{red}%r"
+
+    formats1="%F{cyan}(%F{cyan}%s%F{cyan})%F{cyan}[%F{blue}%b%f%c%u%F{cyan}]%f"
+    actionformats1="%F{cyan}(%F{magenta}%s%F{cyan})%F{cyan}[%F{blue}%b%f%c%u%F{cyan}|%F{red}%a%F{cyan}]%f"
+    formats2="%F{cyan}(%F{cyan}%s%F{cyan})%F{cyan}[%F{blue}%b%f%c%u%F{red} ${pr_drhl_bul}%F{cyan}]%f"
+    actionformats2="%F{cyan}(%F{magenta}%s%F{cyan})%F{cyan}[%F{blue}%b%f%c%u%F{red} ${pr_drhl_bul}%F{cyan}|%F{red}%a%F{cyan}]%f"
+    scrnttle="zsh:%r[%s(%b)]"
+
+    add-zsh-hook precmd prompt_drhl_precmd
+    autoload -Uz vcs_info
+    vcs_info
+    zle_highlight[(r)default:*]="default:bold"
+}
+
+prompt_drhl_precmd() {
+    setopt noxtrace localoptions extendedglob
+    if [[ -d ./.git ]] {
+            if [[ -z $(git ls-files --other --exclude-standard 2> /dev/null) ]] {
+                    zstyle ':vcs_info:*' formats $formats1 $scrnttle
+                    zstyle ':vcs_info:*' actionformats $actionformats1 $scrnttle
+                } else {
+                    zstyle ':vcs_info:*' formats $formats2 $scrnttle
+                    zstyle ':vcs_info:*' actionformats $actionformats2 $scrnttle
+                }
+        }
+    if [[ -d ./.hg ]] {
+            if [[ -z $(hg status -u 2> /dev/null) ]] {
+                    zstyle ':vcs_info:*' formats $formats1 $scrnttle
+                    zstyle ':vcs_info:*' actionformats $actionformats1 $scrnttle
+                } else {
+                    zstyle ':vcs_info:*' formats $formats2 $scrnttle
+                    zstyle ':vcs_info:*' actionformats $actionformats2 $scrnttle
+                }
+        }
+    if [[ -d ./.bzr ]] {
+            if [[ $(bzr status -S 2> /dev/null) =~ '^\?.*' ]] {
+                    zstyle ':vcs_info:*' formats $formats2 $scrnttle
+                    zstyle ':vcs_info:*' actionformats $actionformats2 $scrnttle
+                } else {
+                    zstyle ':vcs_info:*' formats $formats1 $scrnttle
+                    zstyle ':vcs_info:*' actionformats $actionformats1 $scrnttle
+                }
+        }
+
+    vcs_info
+
+    setopt noxtrace localoptions extendedglob
+    local prompt_line_1
+
+    prompt_drhl_choose_prompt
+
+    PS1="$prompt_line_1$prompt_newline$prompt_line_2%f%k "
+
+}
+
+prompt_drhl_choose_prompt () {
+    local prompt_line_1a_width=${#${(S%%)prompt_line_1a//(\%([KF1]|)\{*\}|\%[Bbkf])}}
+    local prompt_line_1a_width_without_path=${#${(S%%)prompt_line_1a//(\%([KF1]|)\{*\}|\%[Bbkf~])}}
+    local prompt_line_1a2_width_without_path=${#${(S%%)prompt_line_1a2//(\%([KF1]|)\{*\}|\%[Bbkf~])}}
+    local prompt_line_1a3_width=${#${(S%%)prompt_line_1a3//(\%([KF1]|)\{*\}|\%[Bbkf])}}
+    local prompt_line_1a3_width_without_path=${#${(S%%)prompt_line_1a3//(\%([KF1]|)\{*\}|\%[Bbkf~])}}
+    local prompt_line_1vcs_width=${#${(S%%)vcs_info_msg_0_//(\%([F1]|)\{*\}|\%[f])}}
+    local prompt_line_1b_width=${#${(S%%)prompt_line_1b//(\%([KF1]|)\{*\}|\%[Bbkf])}}
+    local prompt_padding_size=$(( COLUMNS
+            - prompt_line_1a_width
+            - prompt_line_1vcs_width
+            - prompt_line_1b_width ))
+
+# Try to fit in long path and user@host.
+    if (( prompt_padding_size > 0 )); then
+        local prompt_padding
+        eval "prompt_padding=\${(l:${prompt_padding_size}::$pr_drhl_sep:)_empty_zz}"
+        prompt_line_1="$prompt_line_1a%b%F{blue}$prompt_padding%f%b$vcs_info_msg_0_$prompt_line_1b"
+        return
+    fi
+
+    prompt_padding_size=$(( COLUMNS
+            - prompt_line_1a3_width
+            - prompt_line_1b_width
+            - prompt_line_1vcs_width ))
+
+# Didn't fit; try to fit in just long path.
+    if (( prompt_padding_size > 0 )); then
+        local prompt_padding
+        eval "prompt_padding=\${(l:${prompt_padding_size}::$pr_drhl_sep:)_empty_zz}"
+        prompt_line_1="$prompt_line_1a3%b%F{blue}$prompt_padding%b$vcs_info_msg_0_$prompt_line_1b"
+        return
+    fi
+
+# Still didn't fit; truncate
+    local prompt_pwd_size=$(( COLUMNS
+            - prompt_line_1b_width
+            - prompt_line_1a3_width_without_path
+            - prompt_line_1vcs_width ))
+    prompt_line_1="%F{cyan}[%B%F{blue}%$prompt_pwd_size<...<%~%<<%b%f%F{cyan}]%F{cyan}(%F{red}%j%F{cyan})%f$vcs_info_msg_0_$prompt_line_1b"
+}
+
+prompt_drhl_setup "$@"
